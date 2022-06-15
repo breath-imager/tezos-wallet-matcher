@@ -51,16 +51,18 @@ query MyQuery {
 }
 """
 
-url = "https://data.objkt.com/v2/graphql/"
-r = requests.post(url, json={'query': query})
-json_data = r.json()
-df_data = json_data['data']['offer']
-tezos_df = pd.DataFrame(df_data)
-tezos_df.rename(columns = {'buyer_address':'wallet_address'},inplace=True)
+#url = "https://data.objkt.com/v2/graphql/"
+#r = requests.post(url, json={'query': query})
+#json_data = r.json()
+#df_data = json_data['data']['offer']
+#tezos_df = pd.DataFrame(df_data, columns=['buyer_address','buyer'])
+#tezos_df['buyer'] = tezos_df['buyer'].apply(lambda x: x['alias'])
+#tezos_df.rename(columns = {'buyer_address':'wallet_address'},inplace=True)
 
 #test database with one wallet in common
-#tezos_df = pd.DataFrame({
-#  'wallet_address': ['tz1dqkxxmq2w5g6jzJRndFJY9E3gUdioKYK1','tz1QFffX69UydB6Dfzbn8b5xnUoKsGhtY9e7', 'tz1TWU7UjbF1knsgd4dhkVGPPtnkK4wHukVW']})
+tezos_df = pd.DataFrame({
+  'wallet_address': ['tz1dqkxxmq2w5g6jzJRndFJY9E3gUdioKYK1','tz1QFffX69UydB6Dfzbn8b5xnUoKsGhtY9e7', 'tz1TWU7UjbF1knsgd4dhkVGPPtnkK4wHukVW'],
+   'alias': ['nauti','kees','ks1']})
 
 
 tezos_df.sort_index(inplace=True)
@@ -71,11 +73,11 @@ print("✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸�
 print(season0_df.head(99))
 
 merged = season0_df.merge(tezos_df, indicator=True, how='outer')
-merged[merged['_merge']== 'right_only']
+merged[merged['_merge']== 'right_only'] 
 
 
 merged = merged[merged['_merge'].str.contains('both')]
-merged = pd.DataFrame(merged, columns=['wallet_address'])
+merged = pd.DataFrame(merged, columns=['wallet_address','alias'])
 print("✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸ Common wallets ✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸")
 print(merged.head(99))
 
