@@ -1,4 +1,5 @@
 
+import string
 from tkinter.tix import COLUMN
 import requests
 import json
@@ -20,12 +21,6 @@ conn = psycopg2.connect(
 
 cur = conn.cursor()
 
-#RETRIEVE SEASON 0 PASS HOLDERS TEZOS WALLETS
-cur.execute(
-  'SELECT tezos_wallet FROM tezos_wallets'
-)
-record = cur.fetchall()
-season0_df = pd.DataFrame(record, columns=['wallet_address'])
 
 
 # RETRIEVE OFFERS FOR GIVEN NFT
@@ -41,7 +36,7 @@ season0_df = pd.DataFrame(record, columns=['wallet_address'])
 #}
 query = """
 query MyQuery {
-  offer(where: {fa_contract: {_eq: "KT1X9fyEnL7r2kSsbiYLbm8aNw2C78Af6mKv"}, status: {_eq: "active"}, token: {token_id: {_eq: "3"}}}, order_by: {timestamp: asc_nulls_last}) {
+  offer(where: {fa_contract: {_eq: "KT1X9fyEnL7r2kSsbiYLbm8aNw2C78Af6mKv"}, status: {_eq: "active"}, token: {token_id: {_eq: "4"}}}, order_by: {timestamp: asc_nulls_last}) {
     id
     price
     buyer_address
@@ -58,7 +53,6 @@ query MyQuery {
 url = "https://data.objkt.com/v2/graphql/"
 r = requests.post(url, json={'query': query})
 json_data = r.json()
-print(json_data)
 df_data = json_data['data']['offer']
 tezos_df = pd.DataFrame(df_data, columns=['buyer_address','buyer', 'tzdomain', 'price', 'timestamp'])
 tezos_df['price'] = tezos_df['price'].apply(lambda x: x/1000000)
@@ -66,6 +60,9 @@ tezos_df['tzdomain'] = tezos_df['buyer'].apply(lambda x: x['tzdomain'])
 tezos_df['buyer'] = tezos_df['buyer'].apply(lambda x: x['alias'])
 
 tezos_df.rename(columns = {'buyer_address':'wallet_address'},inplace=True)
+
+# print offers to csv
+tezos_df.to_csv('offers.csv')  
 
 #test database with one wallet in common
 #tezos_df = pd.DataFrame({
@@ -76,7 +73,33 @@ tezos_df.rename(columns = {'buyer_address':'wallet_address'},inplace=True)
 tezos_df.sort_index(inplace=True)
 print("✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸ offers  ✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸")
 print(tezos_df.head(99))
+
+
+#RETRIEVE SEASON 0 PASS HOLDERS TEZOS WALLETS
+cur.execute(
+  'SELECT tezos_wallet,user_id FROM tezos_wallets'
+)
+record = cur.fetchall()
+season0_df = pd.DataFrame(record, columns=['wallet_address', 'user_id'])
 season0_df.sort_index(inplace=True)
+#clean data / remove special characters
+spec_chars = ["!",'"',"#","%","&","'","(",")",
+              "*","+",",","-",".","/",":",";","<",
+              "=",">","?","@","[","\\","]","^","_",
+              "`","{","|","}","~","–"]
+for char in spec_chars:
+  season0_df['wallet_address'] = season0_df['wallet_address'].str.replace(char, '')
+  
+#season0_df = season0_df.replace('\>','',regex=True).astype(str)
+#season0_df = season0_df.replace('\"','',regex=True).astype(str)
+#season0_df = season0_df.replace('\<','',regex=True).astype(str)
+
+#season0_df.to_csv('holders.csv')
+
+#hacked doc 
+#season0_df = pd.read_csv('holders.csv')
+#season0_df.sort_index(inplace=True)
+
 print("✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸ holders wallets ✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸")
 print(season0_df.head(99))
 
@@ -85,8 +108,9 @@ merged[merged['_merge']== 'right_only']
 
 
 merged = merged[merged['_merge'].str.contains('both')]
-merged = pd.DataFrame(merged, columns=['wallet_address','buyer','tzdomain', 'timestamp'])
+merged = pd.DataFrame(merged, columns=['wallet_address','buyer','tzdomain', 'timestamp', 'user_id'])
 print("✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸ Common wallets ✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸✸")
 print(merged.head(99))
+merged.to_csv('matches.csv')
 
 
